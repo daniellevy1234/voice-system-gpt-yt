@@ -1,0 +1,234 @@
+# -- coding: utf-8 --
+from flask import Flask, request, redirect
+from twilio.twiml.voice_response import VoiceResponse, Gather
+import openai
+import os
+import requests
+from bs4 import BeautifulSoup
+
+app = Flask(_name_)
+
+# הגדרת מפתח ה-API של OpenAI ממשתנה סביבה
+openai.api_key = os.environ.get("OPENAI_API_KEY")
+
+# מילונים לשמירת היסטוריית שיחות ושירים אחרונים בזיכרון
+# הערה: בסביבת ייצור, מומלץ להשתמש במסד נתונים כמו Redis
+sessions = {}
+recent_songs = {}
+
+# רשימת ערוצים לשידור חי
+live_streams = {
+    "1": "https://keshet-livestream.cdn.mk12.streamweb.co.il/live/keshet.stream/playlist.m3u8",
+    "2": "https://kan11live.makan.org.il/kan11/live/playlist.m3u8",
+    "3": "https://13tv-live.cdnwiz.com/live/13tv/13tv/playlist.m3u8",
+    "4": "https://kan14live.makan.org.il/kan14/live/playlist.m3u8",
+    "5": "https://i24hls-i.akamaihd.net/hls/live/2037040/i24newsenglish/index.m3u8"
+}
+
+@app.route("/voice", methods=['GET', 'POST'])
+def voice():
+    resp = VoiceResponse()
+    gather = Gather(num_digits=1, action="/menu", method="POST")
+    prompt = (
+        "ברוך הבא למערכת. "
+        "לשיחה עם ג'י-פי-טי, הקש 1. "
+        "לבקשת שיר, הקש 2. "
+        "לשידורים חיים, הקש 3. "
+        "למבזק חדשות, הקש 4. "
+        "לתוכנית של ינון ובן, הקש 5. "
+        "לשמיעת השירים האחרונים, הקש 6. "
+        "ליציאה, הקש 9."
+    )
+    gather.say(prompt, language="he-IL", voice="Polly.Tomer")
+    resp.append(gather)
+    resp.redirect("/voice")
+    return str(resp)
+
+@app.route("/menu", methods=['POST'])
+def menu():
+    choice = request.form.get("Digits")
+    route_map = {
+        "1": "/gpt-prompt",
+        "2": "/song-prompt",
+        "3": "/live-prompt",
+        "4": "/ynet-news",
+        "5": "/yinon-podcast",
+        "6": "/recent-songs"
+    }
+    if choice in route_map:
+        return redirect(route_map[choice])
+    elif choice == "9":
+        resp = VoiceResponse()
+        resp.say("תודה רבה ולהתראות.", language="he-IL", voice="Polly.Tomer")
+        resp.hangup()
+        return str(resp)
+    else:
+        resp = VoiceResponse()
+        resp.say("בחירה לא חוקית, אנא נסה שוב.", language="he-IL", voice="Polly.Tomer")
+        resp.redirect("/voice")
+        return str(resp)
+
+@app.route("/gpt-prompt", methods=['GET', 'POST'])
+def gpt_prompt():
+    resp = VoiceResponse()
+    prompt = (
+        "נכנסת למצב שיחה עם ג'י-פי-טי. "
+        "כדי לחזור לתפריט הראשי בכל שלב, אמור 'חזור לתפריט'. "
+        "מהי שאלתך הראשונה?"
+    )
+    gather = Gather(input="speech", action="/handle-gpt-response", timeout=7, language="he-IL")
+    gather.say(prompt, language="he-IL", voice="Polly.Tomer")
+    resp.append(gather)
+    resp.redirect("/voice")
+    return str(resp)
+
+@app.route("/handle-gpt-response", methods=['POST'])
+def handle_gpt_response():
+    resp = VoiceResponse()
+    call_sid = request.form.get("CallSid")
+    speech_result = request.form.get("SpeechResult")
+
+    if speech_result and ("חזור לתפריט" in speech_result or "תפריט ראשי" in speech_result):
+        resp.say("בטח, חוזר לתפריט הראשי.", language="he-IL", voice="Polly.Tomer")
+        resp.redirect("/voice")
+        return str(resp)
+
+    if not speech_result:
+        resp.say("לא שמעתי אותך. חוזר לתפריט הראשי.", language="he-IL", voice="Polly.Tomer")
+        resp.redirect("/voice")
+        return str(resp)
+
+    if call_sid not in sessions:
+        sessions[call_sid] = [{"role": "system", "content": "ענה בעברית, בקצרה ובבהירות."}]
+    
+    sessions[call_sid].append({"role": "user", "content": speech_result})
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=sessions[call_sid]
+        )
+        answer = response.choices[0].message.content
+        sessions[call_sid].append({"role": "assistant", "content": answer})
+        resp.say(answer, language="he-IL", voice="Polly.Tomer")
+
+        # המשך הלולאה רק אם התשובה התקבלה בהצלחה
+        gather = Gather(input="speech", action="/handle-gpt-response", timeout=7, language="he-IL")
+        resp.append(gather)
+
+    except Exception as e:
+        print(f"Error calling OpenAI: {e}")
+        resp.say("מצטער, הייתה תקלה בקבלת התשובה מ-GPT. חוזר לתפריט הראשי.", language="he-IL", voice="Polly.Tomer")
+        # במקרה של שגיאה, נשבור את הלולאה ונחזור לתפריט
+        resp.redirect("/voice")
+        
+    return str(resp)
+
+@app.route("/song-prompt", methods=['GET', 'POST'])
+def song_prompt():
+    resp = VoiceResponse()
+    gather = Gather(input="speech", action="/play-song", timeout=5, language="he-IL")
+    gather.say("אמור את שם השיר והזמר שתרצה לשמוע.", language="he-IL", voice="Polly.Tomer")
+    resp.append(gather)
+    resp.redirect("/voice")
+    return str(resp)
+
+@app.route("/play-song", methods=['POST'])
+def play_song():
+    resp = VoiceResponse()
+    speech = request.form.get("SpeechResult")
+    call_sid = request.form.get("CallSid")
+    if speech:
+        recent_songs.setdefault(call_sid, []).append(speech)
+        recent_songs[call_sid] = recent_songs[call_sid][-3:]
+        
+        song_url = f"https://yt-api.stream.sh/play?search={speech}"
+        resp.say(f"מנגן את {speech}", language="he-IL", voice="Polly.Tomer")
+        resp.play(song_url)
+    else:
+        resp.say("לא הצלחתי לזהות את השיר.", language="he-IL", voice="Polly.Tomer")
+    
+    resp.redirect("/voice")
+    return str(resp)
+
+@app.route("/recent-songs", methods=['GET', 'POST'])
+def recent_songs_playback():
+    resp = VoiceResponse()
+    call_sid = request.form.get("CallSid")
+    songs_to_play = recent_songs.get(call_sid, [])
+    
+    if songs_to_play:
+        resp.say("מנגן את השירים האחרונים שביקשת.", language="he-IL", voice="Polly.Tomer")
+        for song_query in reversed(songs_to_play):
+            song_url = f"https://yt-api.stream.sh/play?search={song_query}"
+            resp.say(f"השיר הבא: {song_query}", language="he-IL", voice="Polly.Tomer")
+            resp.play(song_url)
+    else:
+        resp.say("לא נמצאו שירים בהיסטוריה שלך.", language="he-IL", voice="Polly.Tomer")
+    
+    resp.redirect("/voice")
+    return str(resp)
+
+@app.route("/live-prompt", methods=['GET', 'POST'])
+def live_prompt():
+    resp = VoiceResponse()
+    gather = Gather(num_digits=1, action="/play-live", method="POST")
+    prompt = (
+        "לערוץ 12, הקש 1. "
+        "לערוץ 11, הקש 2. "
+        "לערוץ 13, הקש 3. "
+        "לערוץ 14, הקש 4. "
+        "לערוץ i24, הקש 5."
+    )
+    gather.say(prompt, language="he-IL", voice="Polly.Tomer")
+    resp.append(gather)
+    resp.redirect("/voice")
+    return str(resp)
+
+@app.route("/play-live", methods=['POST'])
+def play_live():
+    resp = VoiceResponse()
+    digit = request.form.get("Digits")
+    url = live_streams.get(digit)
+    if url:
+        resp.say("מתחבר לשידור החי.", language="he-IL", voice="Polly.Tomer")
+        resp.play(url)
+    else:
+        resp.say("ערוץ לא תקין.", language="he-IL", voice="Polly.Tomer")
+    
+    resp.redirect("/voice")
+    return str(resp)
+
+@app.route("/ynet-news", methods=['GET', 'POST'])
+def ynet_news():
+    resp = VoiceResponse()
+    resp.say("בודק מהן הכותרות הראשיות מוואינט.", language="he-IL", voice="Polly.Tomer")
+    
+    try:
+        r = requests.get("https://www.ynet.co.il/news", timeout=5)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.content, "html.parser")
+        headlines = [item.get_text(strip=True) for item in soup.select(".slotTitle a")[:5]]
+        if headlines:
+            news_string = ". ".join(headlines)
+            resp.say(news_string, language="he-IL", voice="Polly.Tomer")
+        else:
+            resp.say("לא מצאתי כותרות חדשות.", language="he-IL", voice="Polly.Tomer")
+            
+    except Exception as e:
+        print(f"Error fetching Ynet news: {e}")
+        resp.say("הייתה שגיאה בקבלת החדשות.", language="he-IL", voice="Polly.Tomer")
+    
+    resp.redirect("/voice")
+    return str(resp)
+
+@app.route("/yinon-podcast", methods=['GET', 'POST'])
+def yinon_podcast():
+    resp = VoiceResponse()
+    resp.say("מנגן את התוכנית של ינון מגל ובן כספית.", language="he-IL", voice="Polly.Tomer")
+    resp.play("https://103fm.maariv.co.il/media/podcast/mp3/1030_podcast_19620.mp3")
+    resp.redirect("/voice")
+    return str(resp)
+
+if _name_ == "_main_":
+    app.run(debug=True)
