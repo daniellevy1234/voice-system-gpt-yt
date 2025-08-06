@@ -5,6 +5,7 @@ _pycache_/
 *.pyd
 .Python
 env/
+.env
 venv/
 
 # IDE files
