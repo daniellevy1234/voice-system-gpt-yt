@@ -1,6 +1,6 @@
 # -- coding: utf-8 --
 # recovery code for twillo 56ZGZ6L8P7Q59M7LVGA2BKQ5
-from flask import Flask, request, redirect
+from flask import Flask, request, redirect, Response
 from twilio.twiml.voice_response import VoiceResponse, Gather
 import openai
 import os
@@ -26,13 +26,12 @@ live_streams = {
     "5": "https://i24hls-i.akamaihd.net/hls/live/2037040/i24newsenglish/index.m3u8"
 }
 
+
 @app.route("/voice", methods=['GET', 'POST'])
 def voice():
     resp = VoiceResponse()
-    print(resp)
-    gather = Gather(num_digits=1, action="/menu", method="POST")
-    print(gather)
 
+    gather = Gather(num_digits=1, action="/menu", method="POST", timeout=5)
     prompt = (
         "ברוך הבא למערכת. "
         "לשיחה עם ג'י-פי-טי, הקש 1. "
@@ -45,8 +44,13 @@ def voice():
     )
     gather.say(prompt, language="he-IL", voice="Polly.Tomer")
     resp.append(gather)
-    resp.redirect("/voice")
-    return str(resp)
+
+    # If no input is received, say goodbye and hang up
+    resp.say("לא התקבלה קלט. נסה שוב מאוחר יותר.", language="he-IL", voice="Polly.Tomer")
+    resp.hangup()
+
+    return Response(str(resp), mimetype='text/xml')
+
 
 @app.route("/menu", methods=['POST'])
 def menu():
