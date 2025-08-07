@@ -1,4 +1,5 @@
 # -- coding: utf-8 --
+# recovery code for twillo 56ZGZ6L8P7Q59M7LVGA2BKQ5
 from flask import Flask, request, redirect
 from twilio.twiml.voice_response import VoiceResponse, Gather
 import openai
@@ -6,7 +7,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
-app = Flask(_name_)
+app = Flask(__name__)
 
 # הגדרת מפתח ה-API של OpenAI ממשתנה סביבה
 openai.api_key = os.environ.get("OPENAI_API_KEY")
@@ -28,7 +29,10 @@ live_streams = {
 @app.route("/voice", methods=['GET', 'POST'])
 def voice():
     resp = VoiceResponse()
+    print(resp)
     gather = Gather(num_digits=1, action="/menu", method="POST")
+    print(gather)
+
     prompt = (
         "ברוך הבא למערכת. "
         "לשיחה עם ג'י-פי-טי, הקש 1. "
@@ -230,5 +234,6 @@ def yinon_podcast():
     resp.redirect("/voice")
     return str(resp)
 
-if _name_ == "_main_":
+
+if __name__ == "__main__":
     app.run(debug=True)
