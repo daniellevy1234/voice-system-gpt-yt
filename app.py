@@ -33,20 +33,22 @@ def voice():
 
     gather = Gather(num_digits=1, action="/menu", method="POST", timeout=5)
     prompt = (
-        "ברוך הבא למערכת. "
-        "לשיחה עם ג'י-פי-טי, הקש 1. "
-        "לבקשת שיר, הקש 2. "
-        "לשידורים חיים, הקש 3. "
-        "למבזק חדשות, הקש 4. "
-        "לתוכנית של ינון ובן, הקש 5. "
-        "לשמיעת השירים האחרונים, הקש 6. "
-        "ליציאה, הקש 9."
+        # "ברוך הבא למערכת. "
+        # "לשיחה עם ג'י-פי-טי, הקש 1. "
+        # "לבקשת שיר, הקש 2. "
+        # "לשידורים חיים, הקש 3. "
+        # "למבזק חדשות, הקש 4. "
+        # "לתוכנית של ינון ובן, הקש 5. "
+        # "לשמיעת השירים האחרונים, הקש 6. "
+        # "ליציאה, הקש 9."
+        "you are a genius!!"
     )
-    gather.say(prompt, language="he-IL", voice="Polly.Tomer")
+    gather.say(prompt, voice="Polly.Tomer")
+    # gather.say(prompt, language="he-IL", voice="Polly.Tomer")
     resp.append(gather)
 
     # If no input is received, say goodbye and hang up
-    resp.say("לא התקבלה קלט. נסה שוב מאוחר יותר.", language="he-IL", voice="Polly.Tomer")
+    # resp.say("לא התקבלה קלט. נסה שוב מאוחר יותר.", language="he-IL", voice="Polly.Tomer")
     resp.hangup()
 
     return Response(str(resp), mimetype='text/xml')
