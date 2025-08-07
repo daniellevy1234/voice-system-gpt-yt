@@ -76,7 +76,7 @@ def menu():
         return redirect(route_map[choice])
     elif choice == "9":
         resp = VoiceResponse()
-        resp.say("תודה רבה ולהתראות.", language="he-IL", voice="Polly.Tomer")
+        resp.say("Thank you for calling! Goodbye.")
         resp.hangup()
         return str(resp)
     else:
