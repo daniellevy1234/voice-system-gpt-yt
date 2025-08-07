@@ -41,7 +41,14 @@ def voice():
         # "לתוכנית של ינון ובן, הקש 5. "
         # "לשמיעת השירים האחרונים, הקש 6. "
         # "ליציאה, הקש 9."
-        "you are a genius!!"
+        "Welcome to the system."
+        "To talk with GPT, press 1."
+        "To request a song, press 2."
+        "For live broadcasts, press 3."
+        "For a news bulletin, press 4."
+        "For the Yinon and Ben show, press 5."
+        "To hear the latest songs, press 6."
+        "To exit, press 9."
     )
     gather.say(prompt)
     # gather.say(prompt, language="he-IL", voice="Polly.Tomer")
