@@ -43,7 +43,7 @@ def voice():
         # "ליציאה, הקש 9."
         "you are a genius!!"
     )
-    gather.say(prompt, voice="Polly.Tomer")
+    gather.say(prompt)
     # gather.say(prompt, language="he-IL", voice="Polly.Tomer")
     resp.append(gather)
 
