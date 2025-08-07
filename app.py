@@ -70,7 +70,7 @@ def menu():
         "3": "/live-prompt",
         "4": "/ynet-news",
         "5": "/yinon-podcast",
-        "6": "/recent-songs"
+        "6": "/recent-songs",
     }
     if choice in route_map:
         return redirect(route_map[choice])
@@ -81,7 +81,7 @@ def menu():
         return str(resp)
     else:
         resp = VoiceResponse()
-        resp.say("בחירה לא חוקית, אנא נסה שוב.", language="he-IL", voice="Polly.Tomer")
+        resp.say("invalid choice, please try again.")
         resp.redirect("/voice")
         return str(resp)
 
@@ -89,12 +89,13 @@ def menu():
 def gpt_prompt():
     resp = VoiceResponse()
     prompt = (
-        "נכנסת למצב שיחה עם ג'י-פי-טי. "
-        "כדי לחזור לתפריט הראשי בכל שלב, אמור 'חזור לתפריט'. "
-        "מהי שאלתך הראשונה?"
+       "You have entered conversation mode with GPT. "
+"To return to the main menu at any time, say 'Return to menu'. "
+"What is your first question?"
     )
-    gather = Gather(input="speech", action="/handle-gpt-response", timeout=7, language="he-IL")
-    gather.say(prompt, language="he-IL", voice="Polly.Tomer")
+    gather = Gather()
+    gather.say(prompt, language="en-US", voice="Polly.Joanna")
+    
     resp.append(gather)
     resp.redirect("/voice")
     return str(resp)
@@ -208,10 +209,11 @@ def play_live():
     digit = request.form.get("Digits")
     url = live_streams.get(digit)
     if url:
-        resp.say("מתחבר לשידור החי.", language="he-IL", voice="Polly.Tomer")
+        resp.say("Connecting to the live broadcast.")
+
         resp.play(url)
     else:
-        resp.say("ערוץ לא תקין.", language="he-IL", voice="Polly.Tomer")
+        resp.say("Invalid channel.")
     
     resp.redirect("/voice")
     return str(resp)
@@ -219,7 +221,8 @@ def play_live():
 @app.route("/ynet-news", methods=['GET', 'POST'])
 def ynet_news():
     resp = VoiceResponse()
-    resp.say("בודק מהן הכותרות הראשיות מוואינט.", language="he-IL", voice="Polly.Tomer")
+    resp.say("Checking the top headlines from Ynet.")
+
     
     try:
         r = requests.get("https://www.ynet.co.il/news", timeout=5)
@@ -228,14 +231,14 @@ def ynet_news():
         headlines = [item.get_text(strip=True) for item in soup.select(".slotTitle a")[:5]]
         if headlines:
             news_string = ". ".join(headlines)
-            resp.say(news_string, language="he-IL", voice="Polly.Tomer")
+            resp.say("news_string,")
         else:
-            resp.say("לא מצאתי כותרות חדשות.", language="he-IL", voice="Polly.Tomer")
+            resp.say("I couldn't find any news headlines.")
             
     except Exception as e:
         print(f"Error fetching Ynet news: {e}")
-        resp.say("הייתה שגיאה בקבלת החדשות.", language="he-IL", voice="Polly.Tomer")
-    
+        resp.say("There was an error retrieving the news.")
+
     resp.redirect("/voice")
     return str(resp)
 
