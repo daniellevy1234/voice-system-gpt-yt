@@ -160,26 +160,35 @@ def play_song():
     resp = VoiceResponse()
     speech = request.form.get("SpeechResult")
     call_sid = request.form.get("CallSid")
-    
+
     song_map = {
         "esta vida.mp3": ["esta vida.mp3", "esta vida", "esta vida song", "happy song", "song 1", "song one"],
         "oa_ana_bekoach.mp3": ["ana bekoach", "ana bekoach song", "ana bekoach mp3", "song 2", "song two"],
         "oa_bukarest.mp3": ["bukarest", "bukarest song", "bukarest mp3", "song 3", "song three"],
         "oa_mishkafayim.mp3": ["mishkapayim", "mishkapayim song", "mishkapayim mp3", "song 4", "song four"],
+        "yomim.mp3": ["yomim", "yomim song", "yomim mp3", "Rabbi", "days", "song 5", "song five"],
     }
-    if speech and speech.lower() in song_map:
-        file_name = next((k for k, v in song_map.items() if speech.lower() in v), None)
+
+    # Lowercase the speech input
+    if speech:
+        speech_lower = speech.lower()
+
+        # Find the song that matches
+        file_name = next(
+            (k for k, aliases in song_map.items() if speech_lower in (alias.lower() for alias in aliases)),
+            None
+        )
+
         if file_name:
             resp.say(f"Playing the song {file_name.replace('.mp3', '')}.", language="en-US", voice="Polly.Joanna")
-            # resp.say(f"מנגן את השיר {file_name.replace('.mp3', '')}.", language="he-IL", voice="Polly.Tomer")
             recent_songs.setdefault(call_sid, []).append(file_name.replace(".mp3", ""))
-            resp.play("https://voice-system-gpt-yt.onrender.com/songs/" + file_name)
-    else:
-        resp.say("wasnt able to detect the song", language="en-US", voice="Polly.Joanna")
-        # resp.say("לא הצלחתי לזהות את השיר.", language="he-IL", voice="Polly.Tomer")
-    
-    # resp.redirect("/voice")
+            resp.play(f"https://voice-system-gpt-yt.onrender.com/songs/{file_name}")
+            return str(resp)
+
+    # Fallback if no match
+    resp.say("Wasn't able to detect the song", language="en-US", voice="Polly.Joanna")
     return str(resp)
+
 
 @app.route("/recent-songs", methods=['GET', 'POST'])
 def recent_songs_playback():
