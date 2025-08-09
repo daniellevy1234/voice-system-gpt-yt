@@ -107,17 +107,20 @@ def handle_gpt_response():
     speech_result = request.form.get("SpeechResult")
 
     if speech_result and ("חזור לתפריט" in speech_result or "תפריט ראשי" in speech_result):
-        resp.say("בטח, חוזר לתפריט הראשי.", language="he-IL", voice="Polly.Tomer")
+        resp.say("Sure, returning to the main menu." , language="en-US", voice="Polly.Joanna"")
+        # resp.say("בטח, חוזר לתפריט הראשי."Sure, returning to the main menu."", , language="en-US", voice="Polly.Joanna"")
         resp.redirect("/voice")
         return str(resp)
 
     if not speech_result:
-        resp.say("לא שמעתי אותך. חוזר לתפריט הראשי.", language="he-IL", voice="Polly.Tomer")
+        resp.say(" I didn't hear you. Returning to the main menu." , language="en-US", voice="Polly.Joanna"")
+        # resp.say("לא שמעתי אותך. חוזר לתפריט הראשי." I didn't hear you. Returning to the main menu."", , language="en-US", voice="Polly.Joanna"")
         resp.redirect("/voice")
         return str(resp)
 
     if call_sid not in sessions:
-        sessions[call_sid] = [{"role": "system", "content": "ענה בעברית, בקצרה ובבהירות."}]
+        sessions[call_sid] = [{"role": "system", "content": "Answer in Hebrew, briefly and clearly."}]
+        # sessions[call_sid] = [{"role": "system", "content": "ענה בעברית, בקצרה ובבהירות."Answer in Hebrew, briefly and clearly.""}]
     
     sessions[call_sid].append({"role": "user", "content": speech_result})
     
@@ -131,12 +134,13 @@ def handle_gpt_response():
         resp.say(answer, language="he-IL", voice="Polly.Tomer")
 
         # המשך הלולאה רק אם התשובה התקבלה בהצלחה
-        gather = Gather(input="speech", action="/handle-gpt-response", timeout=7, language="he-IL")
+        gather = Gather(input="speech", action="/handle-gpt-response", timeout=7, , language="en-US", voice="Polly.Joanna"")
         resp.append(gather)
 
     except Exception as e:
         print(f"Error calling OpenAI: {e}")
-        resp.say("מצטער, הייתה תקלה בקבלת התשובה מ-GPT. חוזר לתפריט הראשי.", language="he-IL", voice="Polly.Tomer")
+        resp.say("Sorry, there was an error receiving the answer from GPT. Returning to the main menu." , language="en-US", voice="Polly.Joanna"")
+        # resp.say("ה בקבלת התשובה מ-GPT. חוזר לתפריט הראשי.מצטער, הייתה תקל""Sorry, there was an error receiving the answer from GPT. Returning to the main menu.", , language="en-US", voice="Polly.Joanna"")
         # במקרה של שגיאה, נשבור את הלולאה ונחזור לתפריט
         resp.redirect("/voice")
         
@@ -153,9 +157,11 @@ def song_prompt():
 
 @app.route("/play-song", methods=['POST'])
 def play_song():
-    # resp = VoiceResponse()
-    # speech = request.form.get("SpeechResult")
-    # call_sid = request.form.get("CallSid")
+    resp = VoiceResponse()
+    speech = request.form.get("SpeechResult")
+    call_sid = request.form.get("CallSid")
+    
+    resp.say(speech + " and your number is " + call_sid, language="en-US", voice="Polly.Joanna")
     # if speech:
     #     recent_songs.setdefault(call_sid, []).append(speech)
     #     recent_songs[call_sid] = recent_songs[call_sid][-3:]
@@ -166,8 +172,8 @@ def play_song():
     # else:
     #     resp.say("לא הצלחתי לזהות את השיר.", language="he-IL", voice="Polly.Tomer")
     
-    resp = VoiceResponse()
-    resp.play("https://voice-system-gpt-yt.onrender.com/songs/" + "esta%20vida.mp3")
+    # resp = VoiceResponse()
+    # resp.play("https://voice-system-gpt-yt.onrender.com/songs/" + "esta%20vida.mp3")
     
     # resp.redirect("/voice")
     return str(resp)
@@ -179,13 +185,15 @@ def recent_songs_playback():
     songs_to_play = recent_songs.get(call_sid, [])
     
     if songs_to_play:
-        resp.say("מנגן את השירים האחרונים שביקשת.", language="he-IL", voice="Polly.Tomer")
+        resp.say("Playing the last songs you requested." , language="en-US", voice="Polly.Joanna"")
+        # resp.say("מנגן את השירים האחרונים שביקשת.Playing the last songs you requested.", , language="en-US", voice="Polly.Joanna"")
         for song_query in reversed(songs_to_play):
             song_url = f"https://yt-api.stream.sh/play?search={song_query}"
-            resp.say(f"השיר הבא: {song_query}", language="he-IL", voice="Polly.Tomer")
+            resp.say(f"השיר הבא: {song_query}", , language="en-US", voice="Polly.Joanna"")
             resp.play(song_url)
     else:
-        resp.say("לא נמצאו שירים בהיסטוריה שלך.", language="he-IL", voice="Polly.Tomer")
+        resp.say("No songs were found in your history" , language="en-US", voice="Polly.Joanna")
+        # resp.say("לא נמצאו שירים בהיסטוריה שלך.No songs were found in your history", , language="en-US", voice="Polly.Joanna")
     
     resp.redirect("/voice")
     return str(resp)
@@ -201,7 +209,7 @@ def live_prompt():
         "לערוץ 14, הקש 4. "
         "לערוץ i24, הקש 5."
     )
-    gather.say(prompt, language="he-IL", voice="Polly.Tomer")
+    gather.say(prompt, , language="en-US", voice="Polly.Joanna"")
     resp.append(gather)
     resp.redirect("/voice")
     return str(resp)
@@ -248,7 +256,7 @@ def ynet_news():
 @app.route("/yinon-podcast", methods=['GET', 'POST'])
 def yinon_podcast():
     resp = VoiceResponse()
-    resp.say("מנגן את התוכנית של ינון מגל ובן כספית.", language="he-IL", voice="Polly.Tomer")
+    resp.say("Playing The show of Yinon Magal and Ben Caspit.", , language="en-US", voice="Polly.Joanna"")
     resp.play("https://103fm.maariv.co.il/media/podcast/mp3/1030_podcast_19620.mp3")
     resp.redirect("/voice")
     return str(resp)
