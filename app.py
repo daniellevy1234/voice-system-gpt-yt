@@ -178,13 +178,14 @@ def play_song():
             (k for k, aliases in song_map.items() if speech_lower in (alias.lower() for alias in aliases)),
             None
         )
-        resp.say(f"Playing the song {speech_lower}.", language="en-US", voice="Polly.Joanna")
+        resp.say(f"Playing the song {file_name}.", language="en-US", voice="Polly.Joanna")
+        resp.play(f"https://voice-system-gpt-yt.onrender.com/songs/{file_name}")
 
         if file_name:
             resp.say(f"Playing the song {speech_lower}.", language="en-US", voice="Polly.Joanna")
             recent_songs.setdefault(call_sid, []).append(file_name.replace(".mp3", ""))
             resp.play(f"https://voice-system-gpt-yt.onrender.com/songs/{file_name}")
-            return str(resp)
+            # return str(resp)
 
     # Fallback if no match
     resp.say("Wasn't able to detect the song", language="en-US", voice="Polly.Joanna")
