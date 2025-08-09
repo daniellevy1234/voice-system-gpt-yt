@@ -145,28 +145,31 @@ def handle_gpt_response():
 @app.route("/song-prompt", methods=['GET', 'POST'])
 def song_prompt():
     resp = VoiceResponse()
-    gather = Gather(input="speech", action="/play-song", timeout=5, language="he-IL")
-    gather.say("אמור את שם השיר והזמר שתרצה לשמוע.", language="he-IL", voice="Polly.Tomer")
+    gather = Gather(input="speech", action="/play-song", timeout=5)
+    gather.say("Please say the name of the song you are looking for", language="en-US", voice="Polly.Joanna")
     resp.append(gather)
     resp.redirect("/voice")
     return str(resp)
 
 @app.route("/play-song", methods=['POST'])
 def play_song():
-    resp = VoiceResponse()
-    speech = request.form.get("SpeechResult")
-    call_sid = request.form.get("CallSid")
-    if speech:
-        recent_songs.setdefault(call_sid, []).append(speech)
-        recent_songs[call_sid] = recent_songs[call_sid][-3:]
+    # resp = VoiceResponse()
+    # speech = request.form.get("SpeechResult")
+    # call_sid = request.form.get("CallSid")
+    # if speech:
+    #     recent_songs.setdefault(call_sid, []).append(speech)
+    #     recent_songs[call_sid] = recent_songs[call_sid][-3:]
         
-        song_url = f"https://yt-api.stream.sh/play?search={speech}"
-        resp.say(f"מנגן את {speech}", language="he-IL", voice="Polly.Tomer")
-        resp.play(song_url)
-    else:
-        resp.say("לא הצלחתי לזהות את השיר.", language="he-IL", voice="Polly.Tomer")
+    #     song_url = f"https://yt-api.stream.sh/play?search={speech}"
+    #     resp.say(f"מנגן את {speech}", language="he-IL", voice="Polly.Tomer")
+    #     resp.play(song_url)
+    # else:
+    #     resp.say("לא הצלחתי לזהות את השיר.", language="he-IL", voice="Polly.Tomer")
     
-    resp.redirect("/voice")
+    resp = VoiceResponse()
+    resp.play("https://voice-system-gpt-yt.onrender.com/songs/" + "esta%20vida.mp3")
+    
+    # resp.redirect("/voice")
     return str(resp)
 
 @app.route("/recent-songs", methods=['GET', 'POST'])
