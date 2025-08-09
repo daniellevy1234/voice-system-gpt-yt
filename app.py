@@ -1,6 +1,6 @@
 # -- coding: utf-8 --
 # recovery code for twillo 56ZGZ6L8P7Q59M7LVGA2BKQ5
-from flask import Flask, request, redirect, Response
+from flask import Flask, request, redirect, Response, send_from_directory
 from twilio.twiml.voice_response import VoiceResponse, Gather
 import openai
 import os
@@ -249,6 +249,15 @@ def yinon_podcast():
     resp.play("https://103fm.maariv.co.il/media/podcast/mp3/1030_podcast_19620.mp3")
     resp.redirect("/voice")
     return str(resp)
+
+
+# Path to your songs folder
+SONGS_FOLDER = os.path.join(os.getcwd(), "songs")
+
+@app.route("/songs/<path:filename>", methods=['GET'])
+def serve_song(filename):
+    """Serve a song file from the songs folder."""
+    return send_from_directory(SONGS_FOLDER, filename)
 
 
 if __name__ == "__main__":
