@@ -161,19 +161,22 @@ def play_song():
     speech = request.form.get("SpeechResult")
     call_sid = request.form.get("CallSid")
     
-    resp.say(speech + " and your number is " + call_sid, language="en-US", voice="Polly.Joanna")
-    # if speech:
-    #     recent_songs.setdefault(call_sid, []).append(speech)
-    #     recent_songs[call_sid] = recent_songs[call_sid][-3:]
-        
-    #     song_url = f"https://yt-api.stream.sh/play?search={speech}"
-    #     resp.say(f"מנגן את {speech}", language="he-IL", voice="Polly.Tomer")
-    #     resp.play(song_url)
-    # else:
-    #     resp.say("לא הצלחתי לזהות את השיר.", language="he-IL", voice="Polly.Tomer")
-    
-    # resp = VoiceResponse()
-    # resp.play("https://voice-system-gpt-yt.onrender.com/songs/" + "esta%20vida.mp3")
+    song_map = {
+        "esta vida.mp3": ["esta vida.mp3", "esta vida", "esta vida song", "happy song", "song 1", "song one"],
+        "oa_ana_bekoach.mp3": ["ana bekoach", "ana bekoach song", "ana bekoach mp3", "song 2", "song two"],
+        "oa_bukarest.mp3": ["bukarest", "bukarest song", "bukarest mp3", "song 3", "song three"],
+        "oa_mishkafayim.mp3": ["mishkapayim", "mishkapayim song", "mishkapayim mp3", "song 4", "song four"],
+    }
+    if speech and speech.lower() in song_map:
+        file_name = next((k for k, v in song_map.items() if speech.lower() in v), None)
+        if file_name:
+            resp.say(f"Playing the song {file_name.replace('.mp3', '')}.", language="en-US", voice="Polly.Joanna")
+            # resp.say(f"מנגן את השיר {file_name.replace('.mp3', '')}.", language="he-IL", voice="Polly.Tomer")
+            recent_songs.setdefault(call_sid, []).append(file_name.replace(".mp3", ""))
+            resp.play("https://voice-system-gpt-yt.onrender.com/songs/" + file_name)
+    else:
+        resp.say("wasnt able to detect the song", language="en-US", voice="Polly.Joanna")
+        # resp.say("לא הצלחתי לזהות את השיר.", language="he-IL", voice="Polly.Tomer")
     
     # resp.redirect("/voice")
     return str(resp)
