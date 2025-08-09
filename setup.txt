@@ -1,0 +1,14 @@
+install following programs
+- git
+- visual studio code
+- python (3 or greater)
+
+
+go to the wanted folder
+then run command:
+git clone https://github.com/daniellevy1234/voice-system-gpt-yt.git
+
+then run command:
+pip install -r requirements.txt
+
+all done!!
