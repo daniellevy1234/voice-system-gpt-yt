@@ -174,10 +174,15 @@ def play_song():
         speech_lower = speech.lower()
 
         # Find the song that matches
+        # file_name = next(
+        #     (k for k, aliases in song_map.items() if speech_lower in (alias.lower() for alias in aliases)),
+        #     None
+        # )
         file_name = next(
-            (k for k, aliases in song_map.items() if speech_lower in (alias.lower() for alias in aliases)),
+            (k for k, aliases in song_map.items() if any(alias.lower() in speech_lower for alias in aliases)),
             None
-        )
+)
+
         
         if file_name:
             resp.say(f"Playing the song {speech_lower}.", language="en-US", voice="Polly.Joanna")
