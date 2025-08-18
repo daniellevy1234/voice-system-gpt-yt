@@ -100,51 +100,123 @@ def gpt_prompt():
     resp.redirect("/voice")
     return str(resp)
 
+# from flask import Flask, request
+# from twilio.twiml.voice_response import VoiceResponse, Gather
+# from openai import OpenAI
+
+# app = Flask(__name__)
+# client = OpenAI()
+
+# # store conversations per call
+# sessions = {}
+
 @app.route("/handle-gpt-response", methods=['POST'])
 def handle_gpt_response():
     resp = VoiceResponse()
     call_sid = request.form.get("CallSid")
     speech_result = request.form.get("SpeechResult")
 
-    if speech_result and ("חזור לתפריט" in speech_result or "תפריט ראשי" in speech_result):
-        resp.say("Sure, returning to the main menu." , language="en-US", voice="Polly.Joanna")
-        # resp.say("בטח, חוזר לתפריט הראשי."Sure, returning to the main menu.", language="en-US", voice="Polly.Joanna")
+    # --- handle "main menu" ---
+    if speech_result and ("go back to main menu" in speech_result.lower() or "main menu" in speech_result.lower()):
+        resp.say("Sure, returning to the main menu.", language="en-US", voice="Polly.Joanna")
         resp.redirect("/voice")
         return str(resp)
 
+    # --- handle no speech ---
     if not speech_result:
-        resp.say(" I didn't hear you. Returning to the main menu." , language="en-US", voice="Polly.Joanna")
-        # resp.say("לא שמעתי אותך. חוזר לתפריט הראשי." I didn't hear you. Returning to the main menu.", language="en-US", voice="Polly.Joanna")
+        resp.say("I didn't hear you. Returning to the main menu.", language="en-US", voice="Polly.Joanna")
         resp.redirect("/voice")
         return str(resp)
 
+    # --- set up conversation memory if first time ---
     if call_sid not in sessions:
-        sessions[call_sid] = [{"role": "system", "content": "Answer in Hebrew, briefly and clearly."}]
-        # sessions[call_sid] = [{"role": "system", "content": "ענה בעברית, בקצרה ובבהירות."Answer in Hebrew, briefly and clearly."}]
-    
+        sessions[call_sid] = [
+            {"role": "system", "content": "Answer in English, briefly and clearly."}
+        ]
+
+    # save what caller said
     sessions[call_sid].append({"role": "user", "content": speech_result})
-    
+
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+        # --- ask GPT ---
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",   # fast and cheap, can use gpt-4o for smarter
             messages=sessions[call_sid]
         )
         answer = response.choices[0].message.content
-        sessions[call_sid].append({"role": "assistant", "content": answer})
-        resp.say(answer, language="he-IL", voice="Polly.Tomer")
 
-        # המשך הלולאה רק אם התשובה התקבלה בהצלחה
-        gather = Gather(input="speech", action="/handle-gpt-response", timeout=7 , language="en-US", voice="Polly.Joanna")
+        # save GPT answer
+        sessions[call_sid].append({"role": "assistant", "content": answer})
+
+        # --- trim memory to last 20 messages ---
+        if len(sessions[call_sid]) > 20:
+            sessions[call_sid] = sessions[call_sid][-20:]
+
+        # --- say answer back to caller ---
+        resp.say(answer, language="en-US", voice="Polly.Joanna")
+
+        # --- keep the loop going ---
+        gather = Gather(
+            input="speech",
+            action="/handle-gpt-response",
+            timeout=7,
+            language="en-US"
+        )
+        gather.say("You can continue speaking.", language="en-US", voice="Polly.Joanna")
         resp.append(gather)
 
     except Exception as e:
         print(f"Error calling OpenAI: {e}")
-        resp.say("Sorry, there was an error receiving the answer from GPT. Returning to the main menu." , language="en-US", voice="Polly.Joanna")
-        # resp.say("ה בקבלת התשובה מ-GPT. חוזר לתפריט הראשי.מצטער, הייתה תקל"Sorry, there was an error receiving the answer from GPT. Returning to the main menu.", language="en-US", voice="Polly.Joanna")
-        # במקרה של שגיאה, נשבור את הלולאה ונחזור לתפריט
+        resp.say("Sorry, there was an error receiving the answer from GPT. Returning to the main menu.", language="en-US", voice="Polly.Joanna")
         resp.redirect("/voice")
-        
+
     return str(resp)
+# @app.route("/handle-gpt-response", methods=['POST'])
+# def handle_gpt_response():
+#     resp = VoiceResponse()
+#     call_sid = request.form.get("CallSid")
+#     speech_result = request.form.get("SpeechResult")
+
+#     if speech_result and ("go back to main menu" in speech_result or "main menu" in speech_result):
+#         resp.say("Sure, returning to the main menu." , language="en-US", voice="Polly.Joanna")
+#         # resp.say("בטח, חוזר לתפריט הראשי."Sure, returning to the main menu.", language="en-US", voice="Polly.Joanna")
+#         resp.redirect("/voice")
+#         return str(resp)
+
+#     if not speech_result:
+#         resp.say(" I didn't hear you. Returning to the main menu." , language="en-US", voice="Polly.Joanna")
+#         # resp.say("לא שמעתי אותך. חוזר לתפריט הראשי." I didn't hear you. Returning to the main menu.", language="en-US", voice="Polly.Joanna")
+#         resp.redirect("/voice")
+#         return str(resp)
+
+#     if call_sid not in sessions:
+#         sessions[call_sid] = [{"role": "system", "content": "Answer in english, briefly and clearly."}]
+#         # sessions[call_sid] = [{"role": "system", "content": "ענה בעברית, בקצרה ובבהירות."Answer in Hebrew, briefly and clearly."}]
+    
+#     sessions[call_sid].append({"role": "user", "content": speech_result})
+    
+#     try:
+#         response = openai.ChatCompletion.create(
+#             model="gpt-3.5-turbo",
+#             messages=sessions[call_sid]
+#         )
+#         answer = response.choices[0].message.content
+#         sessions[call_sid].append({"role": "assistant", "content": answer})
+#         resp.say(answer, language="en-US", voice="Polly.Joanna")
+#         # resp.say(answer, language="he-IL", voice="Polly.Tomer")
+
+#         # המשך הלולאה רק אם התשובה התקבלה בהצלחה
+#         gather = Gather(input="speech", action="/handle-gpt-response", timeout=7 , language="en-US", voice="Polly.Joanna")
+#         resp.append(gather)
+
+#     except Exception as e:
+#         print(f"Error calling OpenAI: {e}")
+#         resp.say("Sorry, there was an error receiving the answer from GPT. Returning to the main menu." , language="en-US", voice="Polly.Joanna")
+#         # resp.say("ה בקבלת התשובה מ-GPT. חוזר לתפריט הראשי.מצטער, הייתה תקל"Sorry, there was an error receiving the answer from GPT. Returning to the main menu.", language="en-US", voice="Polly.Joanna")
+#         # במקרה של שגיאה, נשבור את הלולאה ונחזור לתפריט
+#         resp.redirect("/voice")
+        
+#     return str(resp)
 
 @app.route("/song-prompt", methods=['GET', 'POST'])
 def song_prompt():
