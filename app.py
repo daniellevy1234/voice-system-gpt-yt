@@ -131,7 +131,7 @@ def handle_gpt_response():
     # --- set up conversation memory if first time ---
     if call_sid not in sessions:
         sessions[call_sid] = [
-            {"role": "system", "content": "Answer in English, briefly and clearly."}
+            {"role": "system", "content": "Answer in English, briefly and clearly and Only answer in plain text."}
         ]
 
     # save what caller said
@@ -217,7 +217,6 @@ def handle_gpt_response():
 #         resp.redirect("/voice")
         
 #     return str(resp)
-
 @app.route("/song-prompt", methods=['GET', 'POST'])
 def song_prompt():
     resp = VoiceResponse()
@@ -227,46 +226,30 @@ def song_prompt():
     resp.redirect("/voice")
     return str(resp)
 
+
 @app.route("/play-song", methods=['POST'])
 def play_song():
     resp = VoiceResponse()
     speech = request.form.get("SpeechResult")
     call_sid = request.form.get("CallSid")
 
-    song_map = {
-        "esta vida.mp3": ["esta vida.mp3", "esta vida", "esta vida song", "happy song", "song 1", "song one"],
-        "oa_ana_bekoach.mp3": ["ana bekoach", "ana bekoach song", "ana bekoach mp3", "song 2", "song two"],
-        "oa_bukarest.mp3": ["bukarest", "bukarest song", "bukarest mp3", "song 3", "song three"],
-        "oa_mishkafayim.mp3": ["mishkapayim", "mishkapayim song", "mishkapayim mp3", "song 4", "song four"],
-        "yomim.mp3": ["yomim", "yomim song", "yomim mp3", "Rabbi", "days", "song 5", "song five"],
-    }
-
-    # Lowercase the speech input
     if speech:
-        speech_lower = speech.lower()
+        song_query = speech.replace(" ", "+")
+        song_url = search_youtube(song_query)
 
-        # Find the song that matches
-        # file_name = next(
-        #     (k for k, aliases in song_map.items() if speech_lower in (alias.lower() for alias in aliases)),
-        #     None
-        # )
-        file_name = next(
-            (k for k, aliases in song_map.items() if any(alias.lower() in speech_lower for alias in aliases)),
-            None
-)
-
-        
-        if file_name:
-            resp.say(f"Playing the song {speech_lower}.", language="en-US", voice="Polly.Joanna")
-            recent_songs.setdefault(call_sid, []).append(file_name.replace(".mp3", ""))
-            resp.play(f"https://voice-system-gpt-yt.onrender.com/songs/{file_name}")
-            # return str(resp)
+        # The API doesn't have a reliable way to check for no results
+        # A quick way to test if a url is valid is to check if it has the mp3 file extension
+        # which it should have if it found a result, if not it will have a stream error.
+        if ".mp3" in song_url:
+            resp.say(f"Playing the song you requested: {speech}.", language="en-US", voice="Polly.Joanna")
+            recent_songs.setdefault(call_sid, []).append(speech)
+            resp.play(song_url)
         else:
-            resp.say(f"Playing the song Yomim.", language="en-US", voice="Polly.Joanna")
-            resp.play(f"https://voice-system-gpt-yt.onrender.com/songs/esta vida.mp3")
-
-    # Fallback if no match
-    resp.say("Wasn't able to detect the song", language="en-US", voice="Polly.Joanna")
+            resp.say(f"I was not able to find that song. Returning to the main menu.", language="en-US", voice="Polly.Joanna")
+    else:
+        resp.say("I wasn't able to detect a song name.", language="en-US", voice="Polly.Joanna")
+    
+    resp.redirect("/voice")
     return str(resp)
 
 
@@ -275,20 +258,90 @@ def recent_songs_playback():
     resp = VoiceResponse()
     call_sid = request.form.get("CallSid")
     songs_to_play = recent_songs.get(call_sid, [])
-    
+
     if songs_to_play:
         resp.say("Playing the last songs you requested." , language="en-US", voice="Polly.Joanna")
-        # resp.say("מנגן את השירים האחרונים שביקשת.Playing the last songs you requested.", language="en-US", voice="Polly.Joanna")
         for song_query in reversed(songs_to_play):
-            song_url = f"https://yt-api.stream.sh/play?search={song_query}"
-            resp.say(f"השיר הבא: {song_query}", language="en-US", voice="Polly.Joanna")
+            song_url = search_youtube(song_query)
+            resp.say(f"Next up is: {song_query}", language="en-US", voice="Polly.Joanna")
             resp.play(song_url)
     else:
         resp.say("No songs were found in your history" , language="en-US", voice="Polly.Joanna")
-        # resp.say("לא נמצאו שירים בהיסטוריה שלך.No songs were found in your history", language="en-US", voice="Polly.Joanna")
-    
+
     resp.redirect("/voice")
     return str(resp)
+
+# @app.route("/song-prompt", methods=['GET', 'POST'])
+# def song_prompt():
+#     resp = VoiceResponse()
+#     gather = Gather(input="speech", action="/play-song", timeout=5)
+#     gather.say("Please say the name of the song you are looking for", language="en-US", voice="Polly.Joanna")
+#     resp.append(gather)
+#     resp.redirect("/voice")
+#     return str(resp)
+
+# @app.route("/play-song", methods=['POST'])
+# def play_song():
+#     resp = VoiceResponse()
+#     speech = request.form.get("SpeechResult")
+#     call_sid = request.form.get("CallSid")
+
+#     song_map = {
+#         "esta vida.mp3": ["esta vida.mp3", "esta vida", "esta vida song", "happy song", "song 1", "song one"],
+#         "oa_ana_bekoach.mp3": ["ana bekoach", "ana bekoach song", "ana bekoach mp3", "song 2", "song two"],
+#         "oa_bukarest.mp3": ["bukarest", "bukarest song", "bukarest mp3", "song 3", "song three"],
+#         "oa_mishkafayim.mp3": ["mishkapayim", "mishkapayim song", "mishkapayim mp3", "song 4", "song four"],
+#         "yomim.mp3": ["yomim", "yomim song", "yomim mp3", "Rabbi", "days", "song 5", "song five"],
+#     }
+
+#     # Lowercase the speech input
+#     if speech:
+#         speech_lower = speech.lower()
+
+#         # Find the song that matches
+#         # file_name = next(
+#         #     (k for k, aliases in song_map.items() if speech_lower in (alias.lower() for alias in aliases)),
+#         #     None
+#         # )
+#         file_name = next(
+#             (k for k, aliases in song_map.items() if any(alias.lower() in speech_lower for alias in aliases)),
+#             None
+# )
+
+        
+#         if file_name:
+#             resp.say(f"Playing the song {speech_lower}.", language="en-US", voice="Polly.Joanna")
+#             recent_songs.setdefault(call_sid, []).append(file_name.replace(".mp3", ""))
+#             resp.play(f"https://voice-system-gpt-yt.onrender.com/songs/{file_name}")
+#             # return str(resp)
+#         else:
+#             resp.say(f"Playing the song Yomim.", language="en-US", voice="Polly.Joanna")
+#             resp.play(f"https://voice-system-gpt-yt.onrender.com/songs/esta vida.mp3")
+
+#     # Fallback if no match
+#     resp.say("Wasn't able to detect the song", language="en-US", voice="Polly.Joanna")
+#     return str(resp)
+
+
+# @app.route("/recent-songs", methods=['GET', 'POST'])
+# def recent_songs_playback():
+#     resp = VoiceResponse()
+#     call_sid = request.form.get("CallSid")
+#     songs_to_play = recent_songs.get(call_sid, [])
+    
+#     if songs_to_play:
+#         resp.say("Playing the last songs you requested." , language="en-US", voice="Polly.Joanna")
+#         # resp.say("מנגן את השירים האחרונים שביקשת.Playing the last songs you requested.", language="en-US", voice="Polly.Joanna")
+#         for song_query in reversed(songs_to_play):
+#             song_url = f"https://yt-api.stream.sh/play?search={song_query}"
+#             resp.say(f"השיר הבא: {song_query}", language="en-US", voice="Polly.Joanna")
+#             resp.play(song_url)
+#     else:
+#         resp.say("No songs were found in your history" , language="en-US", voice="Polly.Joanna")
+#         # resp.say("לא נמצאו שירים בהיסטוריה שלך.No songs were found in your history", language="en-US", voice="Polly.Joanna")
+    
+#     resp.redirect("/voice")
+#     return str(resp)
 
 @app.route("/live-prompt", methods=['GET', 'POST'])
 def live_prompt():
@@ -365,3 +418,4 @@ def serve_song(filename):
 
 if __name__ == "__main__":
     app.run(debug=True)
+
