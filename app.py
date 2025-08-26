@@ -15,7 +15,7 @@ if "OPENAI_API_KEY" not in os.environ:
     raise ValueError("Missing OPENAI_API_KEY environment variable")
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-# ---- GPT session storage ----
+# ---- GPT session storage --
 sessions = {}      # call_sid -> chat history (list of messages)
 gpt_replies = {}   # call_sid -> list of assistant replies (plain text)
 gpt_indexes = {}   # call_sid -> int pointer for 4/6 navigation
