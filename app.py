@@ -45,8 +45,9 @@ def search_youtube(query):
         'format': 'bestaudio/best', # Prioritize the best audio-only format
         'noplaylist': True,
         'quiet': True,
-        'default_search': 'ytsearch1:', # Search YouTube and get the first result
-    }
+        'default_search': 'ytsearch1:', # Search YouTube and get the first result 
+        'cookiefile': 'cookies.txt', # <--- Add this line
+        }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(query, download=False)
