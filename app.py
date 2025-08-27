@@ -41,6 +41,9 @@ def search_youtube(query):
     Searches YouTube for a query and returns a direct audio stream URL.
     Returns None if no suitable stream is found.
     """
+    # Get cookies from the environment variable
+    cookies = os.environ.get("YTDLP_COOKIES", None)
+
     ydl_opts = {
         'format': 'bestaudio/best', # Prioritize the best audio-only format
         'noplaylist': True,
