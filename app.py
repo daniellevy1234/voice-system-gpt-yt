@@ -183,11 +183,6 @@ def handle_gpt_response():
                     replay_text = gpt_replies[call_sid][gpt_indexes[call_sid]]
                     resp.play(BEEP_URL)
                     resp.say(replay_text, language="en-US", voice="Polly.Joanna")
-                else:
-                    # already at latest
-                    resp.play(BEEP_URL)
-                    resp.say("This is the latest response.", language="en-US", voice="Polly.Joanna")
-
         # keep the loop open
         gather = Gather(input="speech dtmf", action="/handle-gpt-response", timeout=7, language="en-US")
         gather.say("You can speak now, or press 4 to go back, 6 to go forward.",
