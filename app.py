@@ -169,7 +169,6 @@ def handle_gpt_response():
                 if gpt_indexes[call_sid] > 0:
                     gpt_indexes[call_sid] -= 1
                     replay_text = gpt_replies[call_sid][gpt_indexes[call_sid]]
-                    resp.play(BEEP_URL)
                     resp.say(replay_text, language="en-US", voice="Polly.Joanna")
                 else:
                     resp.say("No earlier response available.", language="en-US", voice="Polly.Joanna")
@@ -177,8 +176,7 @@ def handle_gpt_response():
             elif digit == "6":  # forward
                 if gpt_indexes[call_sid] < len(gpt_replies[call_sid]) - 1:
                     gpt_indexes[call_sid] += 1
-                    replay_text = gpt_replies[call_sid][gpt_indexes[call_sid]]
-                    resp.play(BEEP_URL)
+                    replay_text 
                     resp.say(replay_text, language="en-US", voice="Polly.Joanna")
         # keep the loop open
         gather = Gather(input="speech dtmf", action="/handle-gpt-response", timeout=7, language="en-US")
