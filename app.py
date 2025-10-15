@@ -220,9 +220,7 @@ def handle_gpt_response():
         if len(sessions[call_sid]) > 40:
             # Keep system prompt + last 38 messages
             sessions[call_sid] = [sessions[call_sid][0]] + sessions[call_sid][-38:]
-
-        # Beep then say answer
-        resp.play(BEEP_URL)
+            
         resp.say(answer, language="en-US", voice="Polly.Joanna")
 
         # Loop for next turn (speech + DTMF)
